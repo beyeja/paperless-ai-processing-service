@@ -1,6 +1,6 @@
 services:
   webhook_service:
-    image: paperless-ai-processing-service:1.0
+    image: beyeja/paperless-ai-processing-service:1.0
     container_name: paperless-ai-processing-service
 
     # optional, only when you want to modify the llm prompts
