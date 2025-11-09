@@ -1,0 +1,12 @@
+.DS_Store
+.env
+.venv/
+venv/
+.vscode/launch.json
+__pycache__/
+__pycache__/
+*.log
+*.env*
+build/
+dist/
+*.tar

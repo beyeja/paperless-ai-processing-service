@@ -1,0 +1,19 @@
+services:
+  webhook_service:
+    image: paperless-ai-processing-service:1.0
+    container_name: paperless-ai-processing-service
+
+    # optional, only when you want to modify the llm prompts
+    # volumes:
+    #   - /volume1/docker/paperlessngx/paperless-ai-processing-service:/usr/src/app
+
+    restart: unless-stopped
+    environment:
+      # your paperless api route within the docker stack
+      - PAPERLESS_NGX_URL=http://PaperlessNGX:8000/api
+      # your paperless api key
+      - PAPERLESS_NGX_API_KEY="SET ME"
+      # your Open WebUI url
+      - OPENAI_BASE_URL=https://your-open-web-ui/api
+      # your Open WebUI api key
+      - OPENAI_API_KEY="SET ME"
