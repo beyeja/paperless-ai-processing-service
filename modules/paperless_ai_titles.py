@@ -3,6 +3,7 @@ from flask import current_app
 
 from modules.openai_titles import OpenAITitles
 
+app = current_app
 
 class PaperlessAITitles:
     def __init__(self, openai_api_key, paperless_url, paperless_api_key, settings_file="settings.yaml"):
@@ -25,10 +26,10 @@ class PaperlessAITitles:
         if response.status_code == 200:
             return response.json()
         else:
-            current_app.logger.error(
+            app.logger.error(
                 "Failed to get document details from paperless-ngx. Status code: %s", response.status_code
             )
-            current_app.logger.error(response.text)
+            app.logger.error(response.text)
             return None
 
 
@@ -47,30 +48,32 @@ class PaperlessAITitles:
         )
 
         if response.status_code == 200:
-            current_app.logger.info(
+            app.logger.info(
                 "Title of %s successfully updated in paperless-ngx to %s.", document_id, new_title
             )
         else:
-            current_app.logger.error(
+            app.logger.error(
                 "Failed to update title in paperless-ngx. Status code: %s", response.status_code
             )
-            current_app.logger.error(response.text)
+            app.logger.error(response.text)
 
 
     def generate_and_update_title(self, document_id):
         document_details = self.__get_document_details(document_id)
         if document_details:
-            current_app.logger.info("Current Document Title: %s", document_details['title'])
+            app.logger.info("Current Document Title: %s", document_details['title'])
 
             content = document_details.get("content", "")
+
+            app.logger.info("all document details: ", document_details)
 
             new_title = self.ai.generate_title_from_text(content)
 
             if new_title:
-                current_app.logger.info("Generated Document Title: %s", new_title)
+                app.logger.info("Generated Document Title: %s", new_title)
 
                 self.__update_document_title(document_id, new_title)
             else:
-                current_app.logger.warning("Failed to generate the document title.")
+                app.logger.warning("Failed to generate the document title.")
         else:
-            current_app.logger.warning("Failed to retrieve document details.")
+            app.logger.warning("Failed to retrieve document details.")

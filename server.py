@@ -2,10 +2,10 @@
 
 import os
 from flask import Flask, request, jsonify
-from modules.paperless_ai_titles import PaperlessAITitles
 from dotenv import load_dotenv
 import logging
-import threading
+
+from modules.server_utils import start_background_processsing
 
 load_dotenv()
 paperless_url = os.getenv("PAPERLESS_NGX_URL")
@@ -23,26 +23,6 @@ logging.basicConfig(
 )
 
 app.logger.info("Starting Paperless AI Titles Webhook Service. Serving...")
-
-def background_task(document_id):
-    """Background task to process document title update."""
-    with app.app_context():
-        try:
-            ai = PaperlessAITitles(openai_api_key, paperless_url, paperless_api_key, "settings.yaml")
-            ai.generate_and_update_title(document_id)
-        except Exception as e:
-            app.logger.info(f"Error processing document {document_id}: {e}")
-            return False
-
-
-def start_background_processsing(document_id):
-    """Starts background processing for the given document ID."""
-    app.logger.info(f"Start background processing of paperless Document with ID: '{document_id}'")
-    
-    thread = threading.Thread(target=background_task, args=(document_id,))
-    thread.start()
-    
-    return True
 
 @app.route('/health', methods=['GET'])
 def health_check():
