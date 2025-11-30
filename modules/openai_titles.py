@@ -130,7 +130,7 @@ class OpenAITitles:
                 continue
             filtered.append(l.strip())
 
-        current_app.logger.trace(
+        current_app.logger.debug(
             f"Filtered LLM lines without thinking artifacts: {filtered}"
         )
 

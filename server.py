@@ -69,8 +69,8 @@ def paperless_webhook():
 
 
 # start_background_processsing(940)
+start_worker_thread(app)
 
 # To run the app
 if __name__ == "__main__":
-    start_worker_thread(app)
     app.run(host="0.0.0.0", port=5000)
