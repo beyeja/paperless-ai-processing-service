@@ -14,3 +14,5 @@ dist/
 settings.yaml
 Dockerfile
 *.tar
+docker-compose.yml
+.github

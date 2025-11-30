@@ -5,7 +5,7 @@ services:
 
     # optional, only when you want to modify the llm prompts
     # volumes:
-    #   - /volume1/docker/paperlessngx/paperless-ai-processing-service:/usr/src/app
+    #   - ./settings.yaml:/usr/src/app/settings.yaml
 
     restart: unless-stopped
     environment:
@@ -17,3 +17,8 @@ services:
       - OPENAI_BASE_URL=https://your-open-web-ui/api
       # your Open WebUI api key
       - OPENAI_API_KEY="SET ME"
+      # logging level (DEBUG, INFO, WARNING, ERROR)
+      - LOG_LEVEL=INFO
+
+      # optional tag id that is added to indicate updated document
+      # - PAPERLESS_NGX_UPDATED_TAG_ID=5
