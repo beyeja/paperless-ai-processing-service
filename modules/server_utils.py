@@ -2,6 +2,7 @@ import threading
 import queue
 from dotenv import load_dotenv
 import os
+import argparse
 
 from flask import current_app
 from modules.paperless_ai_titles import PaperlessAITitles
@@ -13,6 +14,19 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 
 task_queue = queue.Queue()
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Paperless AI Webhook Service. Pass a document ID to start immediate processing."
+    )
+    
+    # Add an optional argument --document-id
+    parser.add_argument(
+        "-d", "--document-id",
+        type=int,
+        help="Start processing a specific document ID immediately on startup."
+    )
+    
+    return parser.parse_args()
 
 def worker(app):
     """Worker thread to process tasks sequentially."""
