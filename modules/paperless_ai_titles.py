@@ -46,13 +46,42 @@ class PaperlessAITitles:
             )
             app.logger.error(response.text)
             return None
+        
+    def __add_updated_tag(self, document_id):
+        url = f"{self.paperless_url}/documents/bulk_edit/"
+        
+        headers = {
+            "Authorization": f"Token {self.paperless_api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        payload = {
+            "documents": [document_id],
+            "method": "add_tag",
+            "parameters": {"tag": self.updatedTagId},
+        }
+
+        app.logger.debug(f"Adding updated tag to document {document_id} with payload {payload}")
+
+        response = requests.post(
+            url,
+            json=payload,
+            headers=headers,
+        )
+
+        if response.status_code == 200:
+            app.logger.info(
+                f"Updated tag successfully added to doc {document_id} in paperless-ngx.",
+            )
+        else:
+            app.logger.error(
+                f"Failed to add updated tag in paperless-ngx. Status code: {response.status_code}",
+            )
+            app.logger.error(response.text)
 
     def __update_document_title(self, document_id, new_title):
         payload = {"title": new_title.strip()[:128]}
-        # Add updated tag if configured
-        if self.updatedTagId:
-            payload["tags"] = [self.updatedTagId]
-
+        
         url = f"{self.paperless_url}/documents/{document_id}/"
 
         headers = {
@@ -99,6 +128,11 @@ class PaperlessAITitles:
                 )
 
                 self.__update_document_title(document_id, new_title)
+                
+                # Add updated tag if configured    
+                if self.updatedTagId:
+                    self.__add_updated_tag(document_id)
+
             else:
                 app.logger.error(
                     f"Failed to generate new title for document id {document_id}, no title returned from LLM"
