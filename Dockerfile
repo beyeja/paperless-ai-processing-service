@@ -20,8 +20,8 @@ EXPOSE 5000
 # The script files will be mounted at runtime.
 CMD ["gunicorn", \
      "--bind", "0.0.0.0:5000", \
-     "--workers", "2", \
-     "--threads", "2", \
+     "--workers", "1", \
+     "--threads", "1", \
      "--log-level", "info", \
      "--access-logfile", "-", \
      "--error-logfile", "-", \

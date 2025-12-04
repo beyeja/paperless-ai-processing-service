@@ -71,7 +71,7 @@ class PaperlessAITitles:
 
         if response.status_code == 200:
             app.logger.info(
-                f"Updated tag successfully added to doc {document_id} in paperless-ngx.",
+                f"Added tag:'{self.updatedTagId}' successfully to doc {document_id} in paperless-ngx.",
             )
         else:
             app.logger.error(
