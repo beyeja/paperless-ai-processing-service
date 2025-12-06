@@ -67,6 +67,7 @@ def paperless_webhook():
         app.logger.info(f"Error handling webhook request: {e}")
         return jsonify({"status": "Invalid request", "error": str(e)}), 400
 
+
 start_worker_thread(app)
 
 # To run the app
@@ -75,13 +76,17 @@ if __name__ == "__main__":
     args = parse_args()
 
     if args.document_id is not None:
-        app.logger.info(f"Application started with immediate processing request for document ID: {args.document_id}")
+        app.logger.info(
+            f"Application started with immediate processing request for document ID: {args.document_id}"
+        )
         start_background_processsing(args.document_id)
 
         app.logger.info("Waiting for the queued task to complete...")
-        task_queue.join() 
+        task_queue.join()
         app.logger.info("Immediate processing complete. Exiting service.")
-        
+
     else:
-        app.logger.info("Application started in server mode, listening for webhook requests.")
+        app.logger.info(
+            "Application started in server mode, listening for webhook requests."
+        )
         app.run(host="0.0.0.0", port=5000)

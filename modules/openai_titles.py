@@ -97,6 +97,29 @@ class OpenAITitles:
             current_app.logger.warning("Prompt settings not found.")
             return None
 
+    def _filter_thinking_lines(self, lines):
+        filtered = []
+        isThinkingBlock = False
+        for l in lines:
+            low = l.lower()
+            if not l.strip():
+                continue
+
+            # remove common thinking artifacts
+            if "<think>" in low:
+                isThinkingBlock = True
+                continue
+
+            if "</think>" in low:
+                isThinkingBlock = False
+                continue
+            
+            if isThinkingBlock:
+                continue
+
+            filtered.append(l.strip())
+        return filtered
+
     def _extract_final_title_from_content(self, content: str) -> str:
         if not content or not isinstance(content, str):
             current_app.logger.error(
@@ -107,28 +130,11 @@ class OpenAITitles:
         # Normalize line endings and strip
         text = content.strip()
 
-        # Split into lines and filter out 'thinking' lines
+        # Split into lines for further processing
         lines = [l.rstrip() for l in text.splitlines()]
-        filtered = []
-        for l in lines:
-            low = l.lower()
-            if not l.strip():
-                continue
-            # remove common thinking artifacts
-            if "thinking" in low or "thought" in low or l.strip().startswith("..."):
-                continue
-            # skip metadata-like lines
-            if (
-                low.startswith("assistant:")
-                or low.startswith("final:")
-                or low.startswith("final title")
-            ):
-                # keep the remainder after colon if present
-                parts = l.split(":", 1)
-                if len(parts) > 1 and parts[1].strip():
-                    filtered.append(parts[1].strip())
-                continue
-            filtered.append(l.strip())
+
+        # filter out 'thinking' lines
+        filtered = self._filter_thinking_lines(lines)
 
         current_app.logger.debug(
             f"Filtered LLM lines without thinking artifacts: {filtered}"
