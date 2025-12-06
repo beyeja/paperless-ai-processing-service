@@ -142,36 +142,32 @@ class OpenAITitles:
 
         if not filtered:
             current_app.logger.warning("No valid lines found in LLM output.")
-            return text
+            return None
 
-        # If the model returned multiple candidate lines, prefer the last reasonable one
-        # Choose last line that is not too long (<=128 chars)
+        # look for title tag that we instructed the model to generate
         for candidate in reversed(filtered):
-            if 0 < len(candidate) <= 128:
-                # strip surrounding quotes or dashes
-                candidate = candidate.strip().strip('"').strip("'").strip("-").strip()
-                # handle HTML-like tags: <title>...</title> or other wrappers
-                try:
-                    import re, html
+            try:
+                import re, html
 
-                    # Simplified and robust logic to extract text inside <title>...</title>
-                    m = re.search(
-                        r"<title>(.*?)</title>",
-                        candidate,
-                        flags=re.IGNORECASE | re.DOTALL,
-                    )
-                    if m:
-                        # Extract and clean the inner text
-                        candidate = m.group(1).strip()
-
+                m = re.search(
+                    r"<title>(.*?)</title>",
+                    candidate,
+                    flags=re.IGNORECASE | re.DOTALL,
+                )
+                if m:
+                    # Extract and clean the inner text
+                    candidate = m.group(1).strip()
+                    # unescape HTML entities
+                    candidate = html.unescape(candidate)
+                    # strip surrounding quotes or dashes
+                    candidate = candidate.strip().strip('"').strip("'").strip("-").strip()
+            
                     current_app.logger.info("Extracted candidate title: %s", candidate)
-
-                    # Unescape HTML entities
-                    return html.unescape(candidate)
-                except Exception as e:
-                    current_app.logger.error("Error extracting title: %s", e)
                     return candidate
+            except Exception as e:
+                current_app.logger.error("Error extracting title: %s", e)
+                return candidate
 
-        # Fallback to the last filtered line
-        current_app.logger.info("Falling back to last filtered line.")
-        return filtered[-1].strip()
+        # If no suitable candidate found, return nothing as this might indicate failure
+        current_app.logger.warning("No suitable title candidate found in LLM output.")
+        return None
