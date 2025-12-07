@@ -40,63 +40,22 @@ class OpenAITitles:
         except Exception as e:
             current_app.logger.error("Error generating title from GPT: %s", e)
             return None
+    
+    def __split_text_by_tokens(self, text: str):
+        """Splits text into token-sized chunks using the tiktoken encoder."""
+        # Use the common encoder for Qwen models
+        tokenizer = tiktoken.get_encoding("cl100k_base") 
+        
+        tokens = tokenizer.encode(text)
+        current_app.logger.debug(f"Total tokens in document: {len(tokens)}")
 
-    def generate_title_from_text(self, text, document_id=None):
-        with_date = self.settings.get("with_date", False)
-        setting_prompt = self.settings.get("prompt", None)
-        if setting_prompt:
-            prompt = setting_prompt.get("main", "")
-
-            if with_date:
-                current_date = datetime.today().strftime("%Y-%m-%d")
-                with_date_prompt = setting_prompt.get("with_date", "")
-                with_date_prompt = with_date_prompt.replace(
-                    "{current_date}", current_date
-                )
-                prompt += with_date_prompt
-            else:
-                prompt += setting_prompt.get("without_date", "")
-
-            prompt += setting_prompt.get("pre_content", "") + text
-            prompt += setting_prompt.get("post_content", "")
-
-            current_app.logger.info(
-                f"Starting LLM Request for document id {(document_id if document_id else "N/A")}"
-            )
-
-            result = self.__ask_chat_gpt(prompt)
-
-            # Defensive: check result shape and extract raw content
-            raw_content = None
-            try:
-                # SDK object style: result.choices[0].message.content
-                raw_content = result.choices[0].message.content
-            except Exception:
-                try:
-                    # dict style: result['choices'][0]['message']['content']
-                    raw_content = (
-                        result.get("choices", [])[0].get("message", {}).get("content")
-                    )
-                except Exception:
-                    raw_content = None
-
-            if not raw_content:
-                return None
-
-            current_app.logger.debug(f"Raw LLM Output: {raw_content}")
-
-            # Extract final title from the model output using heuristics
-            newTitle = self._extract_final_title_from_content(raw_content)
-
-            current_app.logger.info(
-                f"Generated Title: '{newTitle}' with model '{self.settings.get("openai_model", "gpt-4o-mini")}'"
-            )
-
-            return newTitle
-        else:
-            current_app.logger.warning("Prompt settings not found.")
-            return None
-
+        chunks = []
+        for i in range(0, len(tokens), CHUNK_SIZE - CHUNK_OVERLAP):
+            chunk_tokens = tokens[i: i + CHUNK_SIZE]
+            chunks.append(tokenizer.decode(chunk_tokens))
+        
+        return chunks
+    
     def _filter_thinking_lines(self, lines):
         filtered = []
         isThinkingBlock = False
@@ -162,7 +121,7 @@ class OpenAITitles:
                     # strip surrounding quotes or dashes
                     candidate = candidate.strip().strip('"').strip("'").strip("-").strip()
             
-                    current_app.logger.info("Extracted candidate title: %s", candidate)
+                    current_app.logger.info("Extracted candidate title: '%s'", candidate)
                     return candidate
             except Exception as e:
                 current_app.logger.error("Error extracting title: %s", e)
@@ -171,3 +130,70 @@ class OpenAITitles:
         # If no suitable candidate found, return nothing as this might indicate failure
         current_app.logger.warning("No suitable title candidate found in LLM output.")
         return None
+    
+    def _extract_raw_content(self, result):
+        raw_content = None
+        try:
+            # SDK object style
+            raw_content = result.choices[0].message.content
+        except Exception:
+            try:
+                # dict style fallback
+                raw_content = (
+                    result.get("choices", [])[0].get("message", {}).get("content")
+                )
+            except Exception:
+                raw_content = None
+        return raw_content    
+    
+    def _build_prompt(self, text):
+        with_date = self.settings.get("with_date", False)
+        setting_prompt = self.settings.get("prompt", None)
+        if setting_prompt:
+            prompt = setting_prompt.get("main", "")
+
+            if with_date:
+                current_date = datetime.today().strftime("%Y-%m-%d")
+                with_date_prompt = setting_prompt.get("with_date", "")
+                with_date_prompt = with_date_prompt.replace(
+                    "{current_date}", current_date
+                )
+                prompt += with_date_prompt
+            else:
+                prompt += setting_prompt.get("without_date", "")
+
+            prompt += setting_prompt.get("pre_content", "") + text
+            prompt += setting_prompt.get("post_content", "")
+            return prompt
+        else:
+            current_app.logger.warning("Prompt settings not found.")
+            return None
+
+    def generate_title_from_text(self, text, document_id=None):
+        prompt = self._build_prompt(text)
+        if prompt:
+            current_app.logger.info(
+                f"Starting LLM Request for document id {(document_id if document_id else "N/A")}"
+            )
+
+            result = self.__ask_chat_gpt(prompt)
+
+            # Defensive: check result shape and extract raw content
+            raw_content = self._extract_raw_content(result)
+
+            if not raw_content:
+                return None
+
+            current_app.logger.debug(f"Raw LLM Output: {raw_content}")
+
+            # Extract final title from the model output using heuristics
+            newTitle = self._extract_final_title_from_content(raw_content)
+
+            current_app.logger.info(
+                f"Generated Title: '{newTitle}' with model '{self.settings.get("openai_model", "gpt-4o-mini")}'"
+            )
+
+            return newTitle
+        else:
+            current_app.logger.warning("Prompt settings not found.")
+            return None
